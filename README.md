@@ -1,6 +1,6 @@
 # Metadata Stripper
 
-Local CLI tools to erase all embedded metadata from video and image files — GPS location, timestamps, camera model, and any other identifying information — before sharing them.
+Local CLI tools to erase all embedded metadata from video, image, and PDF files — GPS location, timestamps, camera model, author info, and any other identifying information — before sharing them.
 
 Output files are always saved to your `~/Downloads` folder with a `_clean` suffix. Original files are never touched.
 
@@ -18,16 +18,17 @@ brew install ffmpeg
 ```
 
 - [Pillow](https://python-pillow.org/) — for image stripping
+- [pypdf](https://pypdf.readthedocs.io/) — for PDF stripping
 
 ```bash
-pip3 install Pillow --break-system-packages
+pip3 install Pillow pikepdf --break-system-packages
 ```
 
 ---
 
 ### Tails OS
 
-Python 3 is pre-installed on Tails. You only need to install ffmpeg and Pillow.
+Python 3 is pre-installed on Tails. You only need to install ffmpeg, Pillow, and pypdf.
 
 **1. Open a terminal** (Applications → System Tools → Terminal)
 
@@ -37,19 +38,20 @@ sudo apt-get install -y ffmpeg
 ```
 When prompted, enter your administration password (set at Tails startup).
 
-**3. Install Pillow:**
+**3. Install Python packages:**
 ```bash
-pip3 install Pillow
+pip3 install Pillow pikepdf
 ```
 
 **4. Clone or copy the scripts** into your Persistent Storage so they survive reboots:
 ```bash
 # If you have Persistent Storage enabled (recommended):
-cp strip.py strip_image.py ~/Persistent/
+cp strip.py strip_image.py strip_pdf.py ~/Persistent/
 
 # Then run from there:
 python3 ~/Persistent/strip.py /path/to/video.mp4
 python3 ~/Persistent/strip_image.py /path/to/photo.jpg
+python3 ~/Persistent/strip_pdf.py /path/to/document.pdf
 ```
 
 > **Important:** ffmpeg and Pillow are **not persisted** across Tails sessions by default. You will need to reinstall them each session unless you configure [Additional Software](https://tails.boum.org/doc/persistent_storage/additional_software/) in Persistent Storage settings.
@@ -85,6 +87,26 @@ python3 strip.py ~/Movies/clip.mp4 --compress
 
 ---
 
+### PDFs
+
+```bash
+python3 strip_pdf.py <pdf_file>
+python3 strip_pdf.py <pdf_file> -o /path/to/output.pdf
+```
+
+| Flag | Description |
+|------|-------------|
+| `-o`, `--output` | Custom output path (overrides the default Downloads destination) |
+
+**Examples:**
+```bash
+python3 strip_pdf.py ~/Documents/contract.pdf
+```
+
+Removes: author, creator, producer, creation date, modification date, keywords, subject, and any other embedded metadata fields.
+
+---
+
 ### Images
 
 ```bash
@@ -110,13 +132,15 @@ python3 strip_image.py ~/Pictures/photo.jpg --compress
 
 ## What gets removed
 
-| Data | Videos | Images |
-|------|--------|--------|
-| GPS / location | yes | yes |
-| Date & time recorded | yes | yes |
-| Camera model & manufacturer | yes | yes |
-| Device serial number | yes | yes |
-| Software / encoder info | yes | yes |
+| Data | Videos | Images | PDFs |
+|------|--------|--------|------|
+| GPS / location | yes | yes | yes |
+| Date & time recorded | yes | yes | yes |
+| Camera / device model | yes | yes | - |
+| Device serial number | yes | yes | - |
+| Author / creator name | - | - | yes |
+| Software / encoder info | yes | yes | yes |
+| Keywords / subject | - | - | yes |
 
 > **Note:** Filesystem timestamps (created/modified dates shown by your OS) are assigned locally by each machine and are **not embedded** in the file — they do not travel with the file when you share it.
 
@@ -133,5 +157,11 @@ The `tags` field should be empty or contain only container format identifiers (`
 **Images:**
 ```bash
 python3 -c "from PIL import Image; from PIL.ExifTags import TAGS; img = Image.open('output_clean.jpg'); print(img.getexif())"
+```
+Should print `{}`.
+
+**PDFs:**
+```bash
+python3 -c "from pypdf import PdfReader; r = PdfReader('output_clean.pdf'); print(r.metadata)"
 ```
 Should print `{}`.

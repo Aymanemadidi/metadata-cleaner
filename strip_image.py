@@ -17,8 +17,7 @@ def strip_image(input_path, output_path, compress=False):
         img = img.convert("RGB")
 
     # Create a clean copy with no metadata by rebuilding the image
-    clean = Image.new(img.mode, img.size)
-    clean.putdata(list(img.getdata()))
+    clean = Image.frombytes(img.mode, img.size, img.tobytes())
 
     save_kwargs = {}
     if ext in (".jpg", ".jpeg"):
