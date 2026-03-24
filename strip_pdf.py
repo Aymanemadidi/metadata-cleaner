@@ -36,6 +36,14 @@ def main():
 
         pdf.save(args.output, fix_metadata_version=False)
 
+    # Strip any Producer tag pikepdf may have written during save
+    with pikepdf.open(args.output) as pdf:
+        if '/Info' in pdf.trailer:
+            del pdf.trailer['/Info']
+        pdf.save(args.output + ".tmp", fix_metadata_version=False)
+
+    os.replace(args.output + ".tmp", args.output)
+
     input_size = os.path.getsize(args.input) / (1024 * 1024)
     output_size = os.path.getsize(args.output) / (1024 * 1024)
     print(f"Done: {args.output}")

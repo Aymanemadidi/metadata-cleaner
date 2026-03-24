@@ -21,8 +21,18 @@ def main():
         name, ext = os.path.splitext(basename)
         args.output = os.path.join(os.path.expanduser("~/Downloads"), f"{name}_clean{ext}")
 
-    cmd = ["ffmpeg", "-y", "-i", args.input, "-map_metadata", "-1",
-           "-fflags", "+bitexact", "-flags:v", "+bitexact", "-flags:a", "+bitexact"]
+    cmd = ["ffmpeg", "-y", "-i", args.input,
+           "-map_metadata", "-1",
+           "-map_metadata:s:v", "-1",
+           "-map_metadata:s:a", "-1",
+           "-fflags", "+bitexact",
+           "-flags:v", "+bitexact",
+           "-flags:a", "+bitexact",
+           "-metadata:s:v", "encoder=",
+           "-metadata:s:v", "handler_name=",
+           "-metadata:s:v", "vendor_id=",
+           "-metadata:s:a", "handler_name=",
+           "-metadata:s:a", "vendor_id="]
 
     if args.compress:
         cmd += ["-vcodec", "libx264", "-crf", "23", "-preset", "medium"]
