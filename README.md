@@ -28,7 +28,7 @@ pip3 install Pillow pikepdf --break-system-packages
 
 ### Tails OS
 
-Python 3 is pre-installed on Tails. You only need to install ffmpeg, Pillow, and pypdf.
+Python 3 is pre-installed on Tails. Follow these steps exactly to ensure identical behavior to the tested version.
 
 **1. Open a terminal** (Applications → System Tools → Terminal)
 
@@ -38,25 +38,36 @@ sudo apt-get install -y ffmpeg
 ```
 When prompted, enter your administration password (set at Tails startup).
 
-**3. Install Python packages:**
+**3. Install exact Python package versions:**
 ```bash
-pip3 install Pillow pikepdf
+pip3 install "Pillow==12.1.0" "pikepdf==10.5.1"
 ```
 
-**4. Clone or copy the scripts** into your Persistent Storage so they survive reboots:
-```bash
-# If you have Persistent Storage enabled (recommended):
-cp strip.py strip_image.py strip_pdf.py ~/Persistent/
+> **Why pin versions?** Older versions of pikepdf (below 8.x) and Pillow (below 10.x) may leave behind `Creator`, `ModifyDate`, or `Producer` fields even after stripping. Using these exact versions guarantees the same behavior as tested.
 
-# Then run from there:
+If pip cannot reach the internet, use the Tor proxy:
+```bash
+pip3 install --proxy socks5h://127.0.0.1:9050 "Pillow==12.1.0" "pikepdf==10.5.1"
+```
+
+Or install via apt as a fallback (may be an older version — less reliable):
+```bash
+sudo apt-get install -y python3-pikepdf python3-pil
+```
+
+**4. Copy the scripts** into your Persistent Storage so they survive reboots:
+```bash
+cp strip.py strip_image.py strip_pdf.py strip_to_mp3.py ~/Persistent/
+```
+
+Then run from there:
+```bash
 python3 ~/Persistent/strip.py /path/to/video.mp4
 python3 ~/Persistent/strip_image.py /path/to/photo.jpg
 python3 ~/Persistent/strip_pdf.py /path/to/document.pdf
 ```
 
-> **Important:** ffmpeg and Pillow are **not persisted** across Tails sessions by default. You will need to reinstall them each session unless you configure [Additional Software](https://tails.boum.org/doc/persistent_storage/additional_software/) in Persistent Storage settings.
->
-> To persist them automatically on every boot, add `ffmpeg` via the Additional Software feature in Tails, and add `Pillow` to a `requirements.txt` that you install on startup.
+> **Important:** Installed packages are **not persisted** across Tails sessions by default. You will need to reinstall them each session unless you configure [Additional Software](https://tails.boum.org/doc/persistent_storage/additional_software/) in Persistent Storage settings.
 
 **Output on Tails:** files are saved to `~/Downloads` which maps to `/home/amnesia/Downloads/`.
 

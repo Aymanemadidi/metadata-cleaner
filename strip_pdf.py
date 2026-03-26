@@ -26,23 +26,24 @@ def main():
 
     print(f"Processing: {args.input}")
     with pikepdf.open(args.input) as pdf:
-        # Remove Info dictionary from trailer
+        # Remove Info dictionary from trailer (author, creator, dates, producer)
         if '/Info' in pdf.trailer:
             del pdf.trailer['/Info']
 
-        # Remove XMP metadata stream from catalog
+        # Clear all XMP metadata fields explicitly
+        # set_pikepdf_as_editor=False prevents pikepdf from injecting its own tags
+        try:
+            with pdf.open_metadata(set_pikepdf_as_editor=False) as meta:
+                for key in list(meta.keys()):
+                    del meta[key]
+        except Exception:
+            pass
+
+        # Remove XMP stream from catalog as a final fallback
         if '/Metadata' in pdf.Root:
             del pdf.Root['/Metadata']
 
         pdf.save(args.output, fix_metadata_version=False)
-
-    # Strip any Producer tag pikepdf may have written during save
-    with pikepdf.open(args.output) as pdf:
-        if '/Info' in pdf.trailer:
-            del pdf.trailer['/Info']
-        pdf.save(args.output + ".tmp", fix_metadata_version=False)
-
-    os.replace(args.output + ".tmp", args.output)
 
     input_size = os.path.getsize(args.input) / (1024 * 1024)
     output_size = os.path.getsize(args.output) / (1024 * 1024)
