@@ -216,11 +216,45 @@
             submitBtn.disabled = false;
         }
 
-        form.addEventListener('submit', function() {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
             submitBtn.disabled = true;
             submitBtn.textContent = 'Processing...';
             processing.style.display = 'block';
+
+            var formData = new FormData(form);
+            fetch('/upload', { method: 'POST', body: formData })
+                .then(function(res) {
+                    if (!res.ok) return res.text().then(function(t) { throw new Error(t); });
+                    var filename = 'cleaned_file';
+                    var cd = res.headers.get('Content-Disposition');
+                    if (cd) {
+                        var match = cd.match(/filename\*?=(?:UTF-8''|")?(.*?)(?:"|$)/i);
+                        if (match) filename = decodeURIComponent(match[1]);
+                    }
+                    return res.blob().then(function(blob) { return { blob: blob, filename: filename }; });
+                })
+                .then(function(result) {
+                    var a = document.createElement('a');
+                    a.href = URL.createObjectURL(result.blob);
+                    a.download = result.filename;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                    resetForm();
+                })
+                .catch(function(err) {
+                    resetForm();
+                });
         });
+
+        function resetForm() {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Strip Metadata';
+            processing.style.display = 'none';
+            fileInput.value = '';
+            fileList.innerHTML = '';
+            submitBtn.disabled = true;
+        }
     </script>
 </body>
 </html>
