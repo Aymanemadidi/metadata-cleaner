@@ -5,6 +5,24 @@ import sys
 import pikepdf
 
 
+def strip_pdf(input_path, output_path):
+    with pikepdf.open(input_path) as pdf:
+        if '/Info' in pdf.trailer:
+            del pdf.trailer['/Info']
+
+        try:
+            with pdf.open_metadata(set_pikepdf_as_editor=False) as meta:
+                for key in list(meta.keys()):
+                    del meta[key]
+        except Exception:
+            pass
+
+        if '/Metadata' in pdf.Root:
+            del pdf.Root['/Metadata']
+
+        pdf.save(output_path, fix_metadata_version=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Strip metadata from PDF files")
     parser.add_argument("input", help="Path to the input PDF file")
@@ -25,25 +43,7 @@ def main():
         args.output = os.path.join(os.path.expanduser("~/Downloads"), f"{name}_clean.pdf")
 
     print(f"Processing: {args.input}")
-    with pikepdf.open(args.input) as pdf:
-        # Remove Info dictionary from trailer (author, creator, dates, producer)
-        if '/Info' in pdf.trailer:
-            del pdf.trailer['/Info']
-
-        # Clear all XMP metadata fields explicitly
-        # set_pikepdf_as_editor=False prevents pikepdf from injecting its own tags
-        try:
-            with pdf.open_metadata(set_pikepdf_as_editor=False) as meta:
-                for key in list(meta.keys()):
-                    del meta[key]
-        except Exception:
-            pass
-
-        # Remove XMP stream from catalog as a final fallback
-        if '/Metadata' in pdf.Root:
-            del pdf.Root['/Metadata']
-
-        pdf.save(args.output, fix_metadata_version=False)
+    strip_pdf(args.input, args.output)
 
     input_size = os.path.getsize(args.input) / (1024 * 1024)
     output_size = os.path.getsize(args.output) / (1024 * 1024)

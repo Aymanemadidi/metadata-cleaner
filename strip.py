@@ -5,6 +5,31 @@ import subprocess
 import sys
 
 
+def strip_video(input_path, output_path, compress=False):
+    cmd = ["ffmpeg", "-y", "-i", input_path,
+           "-map_metadata", "-1",
+           "-map_metadata:s:v", "-1",
+           "-map_metadata:s:a", "-1",
+           "-fflags", "+bitexact",
+           "-flags:v", "+bitexact",
+           "-flags:a", "+bitexact",
+           "-metadata:s:v", "encoder=",
+           "-metadata:s:v", "handler_name=",
+           "-metadata:s:v", "vendor_id=",
+           "-metadata:s:a", "handler_name=",
+           "-metadata:s:a", "vendor_id="]
+
+    if compress:
+        cmd += ["-vcodec", "libx264", "-crf", "23", "-preset", "medium"]
+    else:
+        cmd += ["-c", "copy"]
+
+    cmd.append(output_path)
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed: {result.stderr}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Strip metadata from video files")
     parser.add_argument("input", help="Path to the input video file")
@@ -21,31 +46,11 @@ def main():
         name, ext = os.path.splitext(basename)
         args.output = os.path.join(os.path.expanduser("~/Downloads"), f"{name}_clean{ext}")
 
-    cmd = ["ffmpeg", "-y", "-i", args.input,
-           "-map_metadata", "-1",
-           "-map_metadata:s:v", "-1",
-           "-map_metadata:s:a", "-1",
-           "-fflags", "+bitexact",
-           "-flags:v", "+bitexact",
-           "-flags:a", "+bitexact",
-           "-metadata:s:v", "encoder=",
-           "-metadata:s:v", "handler_name=",
-           "-metadata:s:v", "vendor_id=",
-           "-metadata:s:a", "handler_name=",
-           "-metadata:s:a", "vendor_id="]
-
-    if args.compress:
-        cmd += ["-vcodec", "libx264", "-crf", "23", "-preset", "medium"]
-    else:
-        cmd += ["-c", "copy"]
-
-    cmd.append(args.output)
-
     print(f"Processing: {args.input}")
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    if result.returncode != 0:
-        print(f"Error: ffmpeg failed\n{result.stderr}")
+    try:
+        strip_video(args.input, args.output, compress=args.compress)
+    except RuntimeError as e:
+        print(f"Error: {e}")
         sys.exit(1)
 
     input_size = os.path.getsize(args.input) / (1024 * 1024)
